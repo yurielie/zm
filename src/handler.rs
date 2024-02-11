@@ -185,3 +185,35 @@ impl<'cfg> HandlerTable<'cfg> {
         Ok(newer)
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn handler_table_init_lifetime() {
+        {
+            // 先に HandlerTable のライフタイムが始まる場合
+            let mut ht = HandlerTable::new();
+            ht.add_word_to_word("word", "replaced");
+
+            let args = vec!["word".to_string()];
+
+            let res = ht.parse_args(&args);
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap(), &["replaced".to_string()]);
+        }
+        {
+            // 先にコマンドライン引数のライフタイムが始まる場合
+            let args = vec!["word".to_string()];
+            
+            let mut ht = HandlerTable::new();
+            ht.add_word_to_word("word", "replaced");
+    
+            let res = ht.parse_args(&args);
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap(), &["replaced".to_string()]);
+        }
+    }
+}
