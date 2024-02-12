@@ -1,4 +1,4 @@
 
-pub mod handler;
+pub mod cmdline;
 mod config;
 
