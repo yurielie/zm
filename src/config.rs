@@ -77,11 +77,14 @@ pub struct ZmKeywordConfig {
 }
 impl Display for ZmKeywordConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "  {}  :  {}", self.name, self.help)?;
+        writeln!(f, "  {}:  {}", self.name, self.help)?;
         if matches!(self.mapping, Some(ref m) if !m.is_empty()) {
+            let m = self.mapping.as_ref().unwrap();
             writeln!(f, "    mapping:")?;
-            for (k, v) in self.mapping.as_ref().unwrap() {
-                writeln!(f, "      \"{}\"  ==>  \"{}\"", k, v)?;
+            let width = m.keys().map(|k| k.len()).max().unwrap() + 2;
+            for (k, v) in m {
+                let spaces = " ".repeat(width - k.len());
+                writeln!(f, "      \"{}\"{}==>  \"{}\"", k, spaces, v)?;
             }
         }
         if let Some(ref d) = self.default {

@@ -14,7 +14,9 @@ pub struct Zm {
 impl Zm {
 
     const OPT_SHOW_KW_WITH: &'static str = "--show_keyword_with";
-
+    const OPT_HELP_LONG: &'static str = "--help";
+    const OPT_HELP_SHORT: &'static str = "-h";
+    
     pub fn from_file<T>(path: T) -> anyhow::Result<Self>
     where
         T: AsRef<Path>,
@@ -32,9 +34,10 @@ impl Zm {
 
     pub fn show_help(&self) {
         println!("Zm: v{}", env!("CARGO_PKG_VERSION"));
-        println!("\nUsage: zm [OPTIONS] -- [COMMANDLINE]...");
-        println!("\nOptions:");
-        println!("  {}        show keyword name with given delimitor like keyword=value", Self::OPT_SHOW_KW_WITH);
+        println!("\nusage: zm [OPTIONS] -- [COMMANDLINE]...");
+        println!("\noptions:");
+        println!("  {} <DELIM>  show keyword name with given delimitor like 'keyword=value'", Self::OPT_SHOW_KW_WITH);
+        println!("  {}, {}                   print help", Self::OPT_HELP_SHORT, Self::OPT_HELP_LONG);
         println!("\n{}", self.config);
     }
 
@@ -44,6 +47,11 @@ impl Zm {
     }
 
     pub fn parse_args(&self, args: &[String]) -> anyhow::Result<Vec<String>> {
+
+        if args.is_empty() {
+            self.show_help();
+            return Ok(vec![])
+        }
 
         let mut join_delim = self.join_delim.clone();
 
@@ -59,7 +67,7 @@ impl Zm {
                         join_delim = Some(zm_opts[i + 1].to_string());
                         i += 1;
                     },
-                    "--help" | "-h" => {
+                    Self::OPT_HELP_LONG | Self::OPT_HELP_SHORT => {
                         self.show_help();
                         return Ok(vec![])
                     },
