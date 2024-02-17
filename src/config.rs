@@ -1,5 +1,5 @@
 
-use std::{collections::{HashMap, HashSet}, fmt::Display, marker::PhantomData};
+use std::{collections::HashMap, fmt::Display, marker::PhantomData};
 
 use anyhow::ensure;
 use serde::{Deserialize, Serialize};
@@ -14,8 +14,6 @@ impl Validation for Validated {}
 pub struct ZmConfig<S = NotValidated> {
     #[serde(default)]
     keywords: Vec<ZmKeywordConfig>,
-    #[serde(default)]
-    commands: Vec<ZmCommandConfig>,
 
     #[serde(skip)]
     _marker: PhantomData<fn() -> S>,
@@ -26,12 +24,6 @@ impl<S> Display for ZmConfig<S> {
             writeln!(f, "keywords:\n")?;
             for k in &self.keywords {
                 writeln!(f, "{}", k)?;
-            }
-        }
-        if !self.commands.is_empty() {
-            writeln!(f, "commands:\n")?;
-            for c in &self.commands {
-                writeln!(f, "{}", c)?;
             }
         }
         Ok(())
@@ -60,17 +52,9 @@ impl<S> ZmConfig<S> {
                 names.insert(&k.name, k);
             }
         }
-
-        let mut commands: HashSet<&String> = HashSet::new();
-        for c in &self.commands {
-            ensure!(!commands.contains(&c.name), "Command Error: command name `{}` already exists", c.name);
-            commands.insert(&c.name);
-            ensure!(!names.contains_key(&c.name), "Command Error: command name `{}` conflicts with \"{}\"", c.name, names[&c.name].name);
-        }
     
         Ok(ZmConfig::<Validated> {
             keywords: self.keywords,
-            commands: self.commands,
             _marker: PhantomData
         })
     }
@@ -81,7 +65,6 @@ impl<S: Validation> ZmConfig<S> {
         &self.keywords
     }
 }
-
 
 
 #[derive(Deserialize, Serialize)]
@@ -127,36 +110,5 @@ impl ZmKeywordConfig {
             },
             _ => None,
         }
-    }
-}
-
-
-#[derive(Deserialize, Serialize)]
-pub struct ZmCommandConfig {
-    pub name: String,
-    pub help: String,
-    #[serde(default)]
-    pub priority: i32,
-    #[serde(default)]
-    pub requirements: Vec<String>,
-    #[serde(default)]
-    pub pre: Vec<String>,
-    #[serde(default)]
-    pub post: Vec<String>,
-}
-impl Display for ZmCommandConfig {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "  {}  :  {}", self.name, self.help)?;
-        writeln!(f, "    priority: {}", self.priority)?;
-        if !self.requirements.is_empty() {
-            writeln!(f, "    requirements: [ {} ]", self.requirements.join(", "))?;
-        }
-        if !self.pre.is_empty() {
-            writeln!(f, "    pre: [ {} ]", self.pre.join(","))?;
-        }
-        if !self.post.is_empty() {
-            writeln!(f, "    post: [ {} ]", self.post.join(","))?;
-        }
-        Ok(())
     }
 }
