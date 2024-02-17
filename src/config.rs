@@ -22,7 +22,6 @@ pub struct ZmConfig<S = NotValidated> {
 }
 impl<S> Display for ZmConfig<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Zm: v{}\n", env!("CARGO_PKG_VERSION"))?;
         if !self.keywords.is_empty() {
             writeln!(f, "keywords:\n")?;
             for k in &self.keywords {

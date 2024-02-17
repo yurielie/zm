@@ -1,6 +1,6 @@
 use zm::Zm;
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let zm = match Zm::from_file("./zm.json") {
         Ok(z) => z,
@@ -16,7 +16,7 @@ fn main() -> anyhow::Result<()> {
             std::process::exit(1)
         },
     };
-    println!("{:?}", args);
-
-    Ok(())
+    if !args.is_empty() {
+        println!("{}", args.join(" "));
+    }
 }

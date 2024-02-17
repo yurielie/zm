@@ -13,7 +13,7 @@ pub struct Zm {
 }
 impl Zm {
 
-    const OPT_JOIN_DELIM: &'static str = "--join_delim";
+    const OPT_SHOW_KW_WITH: &'static str = "--show_keyword_with";
 
     pub fn from_file<T>(path: T) -> anyhow::Result<Self>
     where
@@ -31,7 +31,11 @@ impl Zm {
     }
 
     pub fn show_help(&self) {
-        println!("{}", self.config);
+        println!("Zm: v{}", env!("CARGO_PKG_VERSION"));
+        println!("\nUsage: zm [OPTIONS] -- [COMMANDLINE]...");
+        println!("\nOptions:");
+        println!("  {}        show keyword name with given delimitor like keyword=value", Self::OPT_SHOW_KW_WITH);
+        println!("\n{}", self.config);
     }
 
     pub fn parse(&self) -> anyhow::Result<Vec<String>> {
@@ -43,28 +47,35 @@ impl Zm {
 
         let mut join_delim = self.join_delim.clone();
 
-        let args = if let Some(pos) = args.iter().position(|s| s == "--") {
-            let zm_opts = &args[..pos];
+        let opt_pos = args.iter().position(|s| s == "--").unwrap_or(args.len());
+        if opt_pos > 0 {
+            let zm_opts = &args[..opt_pos];
             let mut i = 0;
             while i < zm_opts.len() {
-                if zm_opts[i] == Self::OPT_JOIN_DELIM {
-                    ensure!(i + 1 < zm_opts.len(), "Option Error: option `{}` requires the delimitor but not given.", Self::OPT_JOIN_DELIM);
-                    join_delim = Some(zm_opts[i + 1].to_string());
-                    i += 1;
+                match zm_opts[i].as_str() {
+                    Self::OPT_SHOW_KW_WITH => {
+                        ensure!(i + 1 < zm_opts.len(),
+                            "Option Error: option `{}` requires the delimitor but not given.", Self::OPT_SHOW_KW_WITH);
+                        join_delim = Some(zm_opts[i + 1].to_string());
+                        i += 1;
+                    },
+                    "--help" | "-h" => {
+                        self.show_help();
+                        return Ok(vec![])
+                    },
+                    _ => {}
                 }
                 i += 1;
             }
-
-            &args[pos + 1..]
-        } else {
-            args
-        };
+        }
 
         let mut keys = vec![];
         let mut res = vec![];
         let mut got = HashSet::new();
 
-        for a in args {
+        let mut i = opt_pos + 1;
+        while i < args.len() {
+            let a = &args[i];
             let flow = self.config.get_keyword().iter()
                 .try_for_each(|k| {
                     if let Some(replaced) = k.replace(a) {
@@ -80,6 +91,7 @@ impl Zm {
                 keys.push("".into());
                 res.push(a.to_string());
             }
+            i += 1;
         }
 
         self.config.get_keyword().iter()
