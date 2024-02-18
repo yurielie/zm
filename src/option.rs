@@ -21,7 +21,6 @@ impl OptionDefinition {
             len += " ".len();
             len += self.args.len();
         }
-        len += "  ".len();
         len
     }
 
@@ -50,3 +49,27 @@ pub const OPTIONS: [OptionDefinition; 3] = [
     OPT_SHOW_KW_WITH,
     OPT_HELP,
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn optiondefinition_header_len() {
+        let opt = OptionDefinition::new("--foo", "-f", "", "foo help");
+        assert_eq!(opt.header_len(), 9);
+        assert_eq!(opt.to_string_with_spaces(2), "-f, --foo  foo help");
+
+        let opt = OptionDefinition::new("--foo", "", "", "foo help");
+        assert_eq!(opt.header_len(), 5);
+        assert_eq!(opt.to_string_with_spaces(2), "--foo  foo help");
+
+        let opt = OptionDefinition::new("--foo", "", "<FOO>", "foo help");
+        assert_eq!(opt.header_len(), 11);
+        assert_eq!(opt.to_string_with_spaces(2), "--foo <FOO>  foo help");
+
+        let opt = OptionDefinition::new("--foo", "-f", "<FOO>", "foo help");
+        assert_eq!(opt.header_len(), 15);
+        assert_eq!(opt.to_string_with_spaces(2), "-f, --foo <FOO>  foo help");
+    }
+}
