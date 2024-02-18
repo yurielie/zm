@@ -1,6 +1,6 @@
 
 fn main() {
-    match zm::parse() {
+    match zm::commandline::parse() {
         Ok(args) if !args.is_empty() => {
             println!("{}", args.join(" "));
         }

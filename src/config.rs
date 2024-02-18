@@ -70,10 +70,10 @@ impl<S: Validation> ZmConfig<S> {
 #[derive(Deserialize, Serialize)]
 pub struct ZmKeywordConfig {
     pub name: String,
-    pub help: String,
-    pub mapping: Option<HashMap<String, String>>,
+    help: String,
+    mapping: Option<HashMap<String, String>>,
     pub default: Option<String>,
-    pub prefix: Option<String>,
+    prefix: Option<String>,
 }
 impl Display for ZmKeywordConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
