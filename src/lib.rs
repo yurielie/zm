@@ -7,11 +7,56 @@ use anyhow::ensure;
 use config::{ZmConfig, Validated};
 
 
-const OPT_CONFIG_FILE_LONG: &str = "--file";
-const OPT_CONFIG_FILE_SHORT: &str = "-f";
-const OPT_SHOW_KW_WITH: &str = "--show_keyword_with";
-const OPT_HELP_LONG: &str = "--help";
-const OPT_HELP_SHORT: &str = "-h";
+const OPT_FILE: OptionDefinition = OptionDefinition::new("--file", "-f", "<FILE>", "path of JSON configuration file");
+const OPT_SHOW_KW_WITH: OptionDefinition = OptionDefinition::new("--show_keyword_with", "", "<DELIMITOR>", "show keyword name with given delimitor like 'keyword=value'");
+const OPT_HELP: OptionDefinition = OptionDefinition::new("--help", "-h", "", "print help");
+
+const OPTIONS: [OptionDefinition; 3] = [
+    OPT_FILE,
+    OPT_SHOW_KW_WITH,
+    OPT_HELP,
+];
+
+struct OptionDefinition {
+    pub long: &'static str,
+    pub short: &'static str,
+    args: &'static str,
+    help: &'static str,
+}
+impl OptionDefinition {
+    const fn new(long: &'static str, short: &'static str, args: &'static str, help: &'static str) -> Self {
+        Self { long, short, args, help, }
+    }
+
+    const fn header_len(&self) -> usize {
+        let mut len = 0;
+        len += self.long.len();
+        if !self.short.is_empty() {
+            len += ", ".len();
+            len += self.short.len();
+        }
+        if !self.args.is_empty() {
+            len += " ".len();
+            len += self.args.len();
+        }
+        len += "  ".len();
+        len
+    }
+
+    fn to_string_with_spaces(&self, spaces: usize) -> String {
+        let mut s = String::new();
+        if !self.short.is_empty() {
+            s.push_str(self.short);
+            s.push_str(", ");
+        }
+        s.push_str(self.long);
+        if !self.args.is_empty() {
+            s.push(' ');
+            s.push_str(self.args);
+        }
+        format!("{}{}{}", s, " ".repeat(spaces), self.help)
+    }
+}
 
 
 fn load<P>(path: P) -> anyhow::Result<ZmConfig<Validated>>
@@ -25,10 +70,14 @@ where
 pub fn show_help() {
     println!("Zm: v{}", env!("CARGO_PKG_VERSION"));
     println!("\nusage: zm [OPTIONS] -- [COMMANDLINE]...");
-    println!("\noptions:");
-    println!("  {}, {} <FILE>            path of JSON configuration file", OPT_CONFIG_FILE_SHORT, OPT_CONFIG_FILE_LONG);
-    println!("  {} <DELIM>  show keyword name with given delimitor like 'keyword=value'", OPT_SHOW_KW_WITH);
-    println!("  {}, {}                   print help", OPT_HELP_SHORT, OPT_HELP_LONG);
+
+    if let Some(spaces) = OPTIONS.iter().map(|od| od.header_len()).max() {
+        println!("\noptions:");
+        for opt in OPTIONS {
+            let spaces = spaces - opt.header_len() + 2;
+            println!("  {}", opt.to_string_with_spaces(spaces));
+        }
+    }
 }
 
 pub fn parse() -> anyhow::Result<Vec<String>> {
@@ -51,18 +100,17 @@ pub fn parse_args(args: &[String]) -> anyhow::Result<Vec<String>> {
     while it.peek().is_some_and(|&a| a != "--") {
         let opt = it.next().unwrap();
         match opt.as_str() {
-            OPT_CONFIG_FILE_LONG | OPT_CONFIG_FILE_SHORT => {
-                ensure!(it.peek().is_some(),
+            opt if opt == OPT_FILE.short || opt == OPT_FILE.long => {
+                ensure!(it.peek().is_some_and(|&s| s != "--"),
                     "Option Error: option `{}` requires a path to configuration file but not given.", opt);
-                let path = it.next().unwrap();
-                config = Some(load(path)?);
+                config = Some(load(it.next().unwrap())?);
             },
-            OPT_SHOW_KW_WITH => {
-                ensure!(it.peek().is_some(),
-                    "Option Error: option `{}` requires the delimitor but not given.", OPT_SHOW_KW_WITH);
+            opt if opt == OPT_SHOW_KW_WITH.long => {
+                ensure!(it.peek().is_some_and(|&s| s != "--"),
+                    "Option Error: option `{}` requires the delimitor excluding \"--\" but not given.", OPT_SHOW_KW_WITH.long);
                 join_delim = Some(it.next().cloned().unwrap());
             },
-            OPT_HELP_LONG | OPT_HELP_SHORT => {
+            opt if opt == OPT_HELP.short || opt == OPT_HELP.long => {
                 help = true;
             },
             _ => {}
@@ -112,7 +160,13 @@ pub fn parse_args(args: &[String]) -> anyhow::Result<Vec<String>> {
         });
     
     if let Some(ref delim) = join_delim {
-        Ok(keys.into_iter().zip(res).map(|(k, r)| format!("{}{}{}", k, delim, r)).collect())
+        Ok(keys.into_iter().zip(res).map(|(k, r)| {
+            if !k.is_empty() {
+                format!("{}{}{}", k, delim, r)
+            } else {
+                r
+            }
+        }).collect())
     } else {    
         Ok(res.into_iter().filter(|s| !s.is_empty()).collect())
     }
